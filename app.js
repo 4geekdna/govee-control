@@ -6,6 +6,8 @@
   const LS_KEY = 'govee-api-key';
   const LS_NAMES = 'govee-custom-names';
   const LS_ROOMS = 'govee-rooms';
+  const LS_SELECTED = 'govee-selected';
+  const LS_VIEW = 'govee-view-mode';
 
   const PRESETS = [
     { name: 'Warm',    color: '#FFB347', temp: 2700 },
@@ -26,6 +28,8 @@
     devices: [],
     customNames: {},
     rooms: {},
+    selected: {},          // deviceId -> true
+    viewMode: 'simple',   // 'simple' | 'full'
     filterRoom: '',
     search: '',
     editingIdx: null
@@ -43,6 +47,10 @@
     btnRefresh: $('#btn-refresh'),
     btnAllOn: $('#btn-all-on'),
     btnAllOff: $('#btn-all-off'),
+    btnSimple: $('#btn-simple'),
+    btnFull: $('#btn-full'),
+    fullToolbar: $('#full-toolbar'),
+    simpleHint: $('#simple-hint'),
     search: $('#search'),
     roomFilter: $('#room-filter'),
     deviceList: $('#device-list'),
@@ -78,23 +86,28 @@
     try {
       state.customNames = JSON.parse(localStorage.getItem(LS_NAMES) || '{}');
       state.rooms = JSON.parse(localStorage.getItem(LS_ROOMS) || '{}');
+      state.selected = JSON.parse(localStorage.getItem(LS_SELECTED) || '{}');
+      state.viewMode = localStorage.getItem(LS_VIEW) || 'simple';
     } catch {
       state.customNames = {};
       state.rooms = {};
+      state.selected = {};
+      state.viewMode = 'simple';
     }
   }
 
   function saveNames() { localStorage.setItem(LS_NAMES, JSON.stringify(state.customNames)); }
   function saveRooms() { localStorage.setItem(LS_ROOMS, JSON.stringify(state.rooms)); }
+  function saveSelected() { localStorage.setItem(LS_SELECTED, JSON.stringify(state.selected)); }
+  function saveViewMode() { localStorage.setItem(LS_VIEW, state.viewMode); }
 
   function deviceId(d) { return d.device || d.sku; }
-
   function displayName(d) {
     const id = deviceId(d);
     return state.customNames[id] || d.deviceName || d.sku || 'Device';
   }
-
   function roomOf(d) { return state.rooms[deviceId(d)] || ''; }
+  function isSelected(d) { return !!state.selected[deviceId(d)]; }
 
   async function api(path, options = {}) {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -158,16 +171,25 @@
 
   function getFilteredDevices() {
     let list = [...state.devices];
-    if (state.filterRoom) list = list.filter(d => roomOf(d) === state.filterRoom);
-    if (state.search) {
-      const q = state.search.toLowerCase();
-      list = list.filter(d => {
-        const name = displayName(d).toLowerCase();
-        const room = roomOf(d).toLowerCase();
-        const sku = (d.sku || '').toLowerCase();
-        return name.includes(q) || room.includes(q) || sku.includes(q);
-      });
+
+    // Simple view = only selected devices
+    if (state.viewMode === 'simple') {
+      list = list.filter(d => isSelected(d));
     }
+
+    if (state.viewMode === 'full') {
+      if (state.filterRoom) list = list.filter(d => roomOf(d) === state.filterRoom);
+      if (state.search) {
+        const q = state.search.toLowerCase();
+        list = list.filter(d => {
+          const name = displayName(d).toLowerCase();
+          const room = roomOf(d).toLowerCase();
+          const sku = (d.sku || '').toLowerCase();
+          return name.includes(q) || room.includes(q) || sku.includes(q);
+        });
+      }
+    }
+
     list.sort((a, b) => {
       const ra = roomOf(a) || 'zzz';
       const rb = roomOf(b) || 'zzz';
@@ -185,10 +207,46 @@
     els.roomList.innerHTML = rooms.map(r => `<option value="${escapeHtml(r)}">`).join('');
   }
 
+  function updateViewModeUI() {
+    const isSimple = state.viewMode === 'simple';
+    els.btnSimple.classList.toggle('active', isSimple);
+    els.btnFull.classList.toggle('active', !isSimple);
+    els.fullToolbar.classList.toggle('hidden', isSimple);
+
+    const selectedCount = Object.keys(state.selected).length;
+    els.simpleHint.classList.toggle('hidden', !(isSimple && selectedCount === 0));
+  }
+
+  function setViewMode(mode) {
+    state.viewMode = mode;
+    saveViewMode();
+    updateViewModeUI();
+    renderDevices();
+  }
+
+  function toggleSelected(idx) {
+    const d = state.devices[idx];
+    const id = deviceId(d);
+    if (state.selected[id]) {
+      delete state.selected[id];
+      showToast('Removed from Simple view');
+    } else {
+      state.selected[id] = true;
+      showToast('Added to Simple view', 'success');
+    }
+    saveSelected();
+    renderDevices();
+  }
+
   function renderDevices() {
     const list = getFilteredDevices();
+    updateViewModeUI();
+
     if (list.length === 0) {
-      els.deviceList.innerHTML = `<div class="state">No lights match your filter</div>`;
+      const msg = state.viewMode === 'simple'
+        ? 'No lights selected yet.<br>Switch to <strong>All Lights</strong> and tap ★ to add some.'
+        : 'No lights match your filter';
+      els.deviceList.innerHTML = `<div class="state">${msg}</div>`;
       return;
     }
 
@@ -199,6 +257,7 @@
       const room = roomOf(d);
       const st = d._state || {};
       const isOn = !!st.power;
+      const selected = isSelected(d);
 
       const canPower = (d.capabilities || []).some(c => c.instance === 'powerSwitch');
       const canBright = (d.capabilities || []).some(c => c.instance === 'brightness');
@@ -215,6 +274,7 @@
             <div class="device-info">
               <div class="device-name">
                 ${escapeHtml(name)}
+                <button class="star-btn ${selected ? 'selected' : ''}" data-action="star" data-idx="${idx}" title="Add/remove from Simple view">${selected ? '★' : '☆'}</button>
                 <button class="edit-btn" data-action="edit" data-idx="${idx}" title="Edit name / room">✏️</button>
               </div>
               <div class="device-meta">${escapeHtml(d.sku)}</div>
@@ -291,6 +351,9 @@
     });
     $$('[data-action="edit"]').forEach(btn => {
       btn.addEventListener('click', () => openEditModal(Number(btn.dataset.idx)));
+    });
+    $$('[data-action="star"]').forEach(btn => {
+      btn.addEventListener('click', () => toggleSelected(Number(btn.dataset.idx)));
     });
   }
 
@@ -492,14 +555,20 @@
 
   function boot() {
     loadLocal();
+
     els.btnConnect.addEventListener('click', () => connect(els.apiKeyInput.value));
     els.apiKeyInput.addEventListener('keydown', e => { if (e.key === 'Enter') connect(els.apiKeyInput.value); });
     els.btnLogout.addEventListener('click', logout);
     els.btnRefresh.addEventListener('click', () => { if (state.apiKey) loadAll(); });
     els.btnAllOn.addEventListener('click', () => allPower(true));
     els.btnAllOff.addEventListener('click', () => allPower(false));
+
+    els.btnSimple.addEventListener('click', () => setViewMode('simple'));
+    els.btnFull.addEventListener('click', () => setViewMode('full'));
+
     els.search.addEventListener('input', () => { state.search = els.search.value.trim(); renderDevices(); });
     els.roomFilter.addEventListener('change', () => { state.filterRoom = els.roomFilter.value; renderDevices(); });
+
     $('#modal-edit-close').addEventListener('click', closeEditModal);
     $('#modal-edit-cancel').addEventListener('click', closeEditModal);
     $('#modal-edit-save').addEventListener('click', saveEdit);
