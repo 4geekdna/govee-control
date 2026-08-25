@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>Govee Control</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💡</text></svg>" />
+</head>
+<body>
+  <header class="header">
+    <h1>Govee Control</h1>
+    <div class="header-actions">
+      <button id="btn-refresh" class="icon-btn" title="Refresh">↻</button>
+      <button id="btn-logout" class="icon-btn hidden" title="Logout">⎋</button>
+    </div>
+  </header>
+
+  <!-- Login -->
+  <main id="view-login" class="main">
+    <div class="card login-card">
+      <h2>Connect to Govee</h2>
+      <p>Paste your Govee Developer API Key. It stays only on this device.</p>
+      <div class="form-group">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="Your Govee API Key" autocomplete="off" />
+      </div>
+      <button id="btn-connect" class="btn btn-primary">Connect</button>
+      <p class="help">Get a key in the Govee Home app → Profile → Settings → Apply for API Key</p>
+    </div>
+  </main>
+
+  <!-- Devices -->
+  <main id="view-devices" class="main hidden">
+    <div class="global-actions">
+      <button id="btn-all-on" class="btn btn-success">All On</button>
+      <button id="btn-all-off" class="btn btn-danger">All Off</button>
+    </div>
+
+    <div id="device-list" class="device-list">
+      <!-- populated by JS -->
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
