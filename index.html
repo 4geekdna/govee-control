@@ -35,15 +35,43 @@
 
   <!-- Devices -->
   <main id="view-devices" class="main hidden">
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Search lights…" />
+      <select id="room-filter">
+        <option value="">All Rooms</option>
+      </select>
+    </div>
+
     <div class="global-actions">
       <button id="btn-all-on" class="btn btn-success">All On</button>
       <button id="btn-all-off" class="btn btn-danger">All Off</button>
     </div>
 
-    <div id="device-list" class="device-list">
-      <!-- populated by JS -->
-    </div>
+    <div id="device-list" class="device-list"></div>
   </main>
+
+  <!-- Edit Name / Room Modal -->
+  <div class="modal-overlay" id="modal-edit">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Light</h3>
+        <button class="icon-btn" id="modal-edit-close">✕</button>
+      </div>
+      <div class="form-group">
+        <label for="edit-name">Custom Name</label>
+        <input type="text" id="edit-name" placeholder="e.g. Bedroom Strip" />
+      </div>
+      <div class="form-group">
+        <label for="edit-room">Room / Group</label>
+        <input type="text" id="edit-room" placeholder="e.g. Living Room" list="room-list" />
+        <datalist id="room-list"></datalist>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="modal-edit-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-edit-save">Save</button>
+      </div>
+    </div>
+  </div>
 
   <div id="toast" class="toast"></div>
 
