@@ -14,6 +14,7 @@
   <header class="header">
     <h1>Govee Control</h1>
     <div class="header-actions">
+      <button id="btn-view-toggle" class="icon-btn hidden" title="Switch view">☰</button>
       <button id="btn-refresh" class="icon-btn" title="Refresh">↻</button>
       <button id="btn-logout" class="icon-btn hidden" title="Logout">⎋</button>
     </div>
@@ -35,7 +36,12 @@
 
   <!-- Devices -->
   <main id="view-devices" class="main hidden">
-    <div class="toolbar">
+    <div class="view-mode-bar">
+      <button id="btn-simple" class="mode-btn active">Simple</button>
+      <button id="btn-full" class="mode-btn">All Lights</button>
+    </div>
+
+    <div id="full-toolbar" class="toolbar hidden">
       <input type="search" id="search" placeholder="Search lights…" />
       <select id="room-filter">
         <option value="">All Rooms</option>
@@ -45,6 +51,10 @@
     <div class="global-actions">
       <button id="btn-all-on" class="btn btn-success">All On</button>
       <button id="btn-all-off" class="btn btn-danger">All Off</button>
+    </div>
+
+    <div id="simple-hint" class="simple-hint hidden">
+      Tap the ★ on any light in <strong>All Lights</strong> view to add it here.
     </div>
 
     <div id="device-list" class="device-list"></div>
